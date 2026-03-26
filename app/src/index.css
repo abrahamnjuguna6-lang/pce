@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── PCE Technologies — CSS Design Tokens ──────────────────────────────────── */
+@layer base {
+  :root {
+    /* shadcn semantic tokens — mapped to PCE dark palette */
+    --background:         222 19% 8%;     /* #111318 */
+    --foreground:         228 11% 90%;    /* #e2e2e9 */
+
+    --card:               228 13% 13%;    /* #1e1f25 */
+    --card-foreground:    228 11% 90%;    /* #e2e2e9 */
+
+    --popover:            228 13% 13%;    /* #1e1f25 */
+    --popover-foreground: 228 11% 90%;    /* #e2e2e9 */
+
+    --primary:            220 89% 56%;    /* #2563eb — Electric Blue */
+    --primary-foreground: 228 100% 96%;   /* #eeefff */
+
+    --secondary:          191 98% 50%;    /* #00d2fd — Neon Cyan */
+    --secondary-foreground: 193 100% 13%; /* #003642 */
+
+    --muted:              228 8% 20%;     /* #33353a */
+    --muted-foreground:   228 11% 60%;    /* #8d90a0 */
+
+    --accent:             191 98% 50%;    /* #00d2fd — Neon Cyan */
+    --accent-foreground:  228 11% 90%;    /* #e2e2e9 */
+
+    --destructive:        5 100% 84%;     /* #ffb4ab */
+    --destructive-foreground: 357 100% 21%; /* #690005 */
+
+    --border:             228 12% 30%;    /* #434655 */
+    --input:              228 12% 30%;    /* #434655 */
+    --ring:               220 89% 56%;    /* #2563eb */
+
+    --radius:             0.5rem;
+
+    /* PCE custom tokens */
+    --pce-bg:             #111318;
+    --pce-surface-lowest: #0c0e13;
+    --pce-surface-low:    #1a1b21;
+    --pce-surface:        #1e1f25;
+    --pce-surface-high:   #282a2f;
+    --pce-surface-highest:#33353a;
+    --pce-blue:           #2563eb;
+    --pce-blue-dim:       #b4c5ff;
+    --pce-cyan:           #00d2fd;
+    --pce-cyan-dim:       #3cd7ff;
+    --pce-emerald:        #4edea3;
+    --pce-border:         #434655;
+    --pce-outline:        #8d90a0;
+    --pce-text:           #e2e2e9;
+    --pce-text-muted:     #c3c6d7;
+  }
+
+  /* Force dark mode always for PCE */
+  html {
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100svh;
+  }
+}
+
+/* ── PCE Global Utility Classes ─────────────────────────────────────────────── */
+@layer components {
+
+  /* Glassmorphism nav */
+  .glass-nav {
+    background: rgba(17, 19, 24, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* Kinetic gradient background */
+  .kinetic-gradient {
+    background: radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.08) 0%, transparent 70%);
+  }
+
+  /* Grid dot background */
+  .grid-bg {
+    background-image: radial-gradient(rgba(67, 70, 85, 0.6) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Neon data-pulse dot */
+  .data-pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--pce-cyan);
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 12px var(--pce-cyan);
+    animation: data-pulse 2s ease-in-out infinite;
+  }
+
+  /* Electric Blue glow border card */
+  .card-glow {
+    border: 1px solid var(--pce-border);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .card-glow:hover {
+    border-color: rgba(37, 99, 235, 0.5);
+    box-shadow: 0 0 24px rgba(37, 99, 235, 0.12), 0 4px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Cyan accent border card */
+  .card-cyan {
+    border: 1px solid var(--pce-border);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .card-cyan:hover {
+    border-color: rgba(0, 210, 253, 0.4);
+    box-shadow: 0 0 20px rgba(0, 210, 253, 0.1);
+  }
+
+  /* Primary CTA button */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground font-bold px-6 py-3 rounded-lg transition-all;
+    @apply hover:brightness-110 hover:shadow-glow-blue active:scale-95;
+  }
+
+  /* Outlined secondary button */
+  .btn-outline {
+    @apply border border-primary text-pce-blue-dim font-bold px-6 py-3 rounded-lg transition-all;
+    @apply hover:bg-primary/10 active:scale-95;
+  }
+
+  /* Section headings */
+  .section-heading {
+    @apply font-headline font-bold tracking-tight text-foreground;
+  }
+
+  /* Neon Cyan top-border accent card */
+  .accent-card-cyan {
+    border-top: 4px solid var(--pce-cyan);
+  }
+
+  /* Electric Blue top-border accent card */
+  .accent-card-blue {
+    border-top: 4px solid var(--pce-blue);
+  }
+
+  /* Material Symbols config */
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+}

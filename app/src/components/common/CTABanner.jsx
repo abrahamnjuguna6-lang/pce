@@ -1,0 +1,35 @@
+import { Link } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+
+export default function CTABanner({
+  headline = "Ready to Transform Your Business?",
+  subtext = "Join the forward-thinking organisations that have automated their growth with PCE Technologies.",
+  primaryLabel = "Start a Project",
+  primaryTo = "/contact",
+  secondaryLabel = "Contact Us",
+  secondaryTo = "/contact",
+}) {
+  return (
+    <section className="py-24">
+      <div className="max-w-7xl mx-auto px-8">
+        <div className="relative overflow-hidden rounded-2xl bg-pce-surface-container border border-pce-outline-variant/20 p-12 md:p-20">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent pointer-events-none" />
+          <div className="relative z-10 max-w-2xl">
+            <h2 className="text-4xl md:text-5xl font-headline font-bold tracking-tight mb-6 text-foreground">
+              {headline}
+            </h2>
+            <p className="text-xl text-muted-foreground mb-10 leading-relaxed">{subtext}</p>
+            <div className="flex flex-wrap gap-4">
+              <Button asChild size="lg">
+                <Link to={primaryTo}>{primaryLabel}</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link to={secondaryTo}>{secondaryLabel}</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
