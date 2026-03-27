@@ -82,10 +82,10 @@
 
   /* Glassmorphism nav */
   .glass-nav {
-    background: rgba(17, 19, 24, 0.7);
+    background: rgba(17, 19, 24, 0.88);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   /* Kinetic gradient background */

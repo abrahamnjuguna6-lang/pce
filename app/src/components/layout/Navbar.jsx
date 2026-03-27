@@ -33,7 +33,7 @@ export default function Navbar() {
         "fixed top-0 w-full z-50 transition-all duration-500",
         scrolled
           ? "glass-nav shadow-2xl shadow-primary/5"
-          : "bg-transparent"
+          : "bg-[rgba(17,19,24,0.55)] backdrop-blur-md border-b border-white/5"
       )}
     >
       <div className="max-w-7xl mx-auto px-8 flex items-center justify-between h-16">
