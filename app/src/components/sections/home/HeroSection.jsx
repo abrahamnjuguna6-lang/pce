@@ -2,10 +2,13 @@ import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { heroContainer, heroItem, fadeIn, fadeRight } from "@/lib/animations"
+import ParticleBackground from "@/components/common/ParticleBackground"
 
 export default function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-pce-surface-lowest">
+      {/* Particle network background */}
+      <ParticleBackground />
       {/* Kinetic gradient */}
       <motion.div
         className="absolute inset-0 kinetic-gradient pointer-events-none"

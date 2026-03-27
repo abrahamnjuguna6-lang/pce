@@ -1,0 +1,10 @@
+# Workspace & AI tooling
+.claude/
+next-prompt.md
+stitch.json
+queue/
+site/
+
+# OS
+.DS_Store
+Thumbs.db
