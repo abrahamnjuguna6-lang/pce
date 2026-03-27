@@ -160,21 +160,34 @@ export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", company: "", projectDesc: "", message: "" })
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
+    setError(null)
+    try {
+      const res = await fetch("/api/contact", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Something went wrong.")
       setSubmitted(true)
-    }, 1800)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleReset = () => {
     setForm({ name: "", email: "", company: "", projectDesc: "", message: "" })
     setSubmitted(false)
+    setError(null)
   }
 
   return (
@@ -313,6 +326,22 @@ export default function Contact() {
                         </AnimatePresence>
                       </Button>
                     </motion.div>
+
+                    {/* Error message */}
+                    <AnimatePresence>
+                      {error && (
+                        <motion.p
+                          className="text-sm text-red-400 flex items-center gap-2 mt-2"
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.25 }}
+                        >
+                          <span className="material-symbols-outlined text-base">error</span>
+                          {error}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
                   </form>
                 </motion.div>
               )}
