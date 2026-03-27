@@ -1,511 +1,455 @@
-import { useRef, useState, useEffect } from "react"
-import { Link } from "react-router-dom"
-import { motion, AnimatePresence } from "framer-motion"
+import { useRef, useState, useEffect, useCallback } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import ParticleBackground from "@/components/common/ParticleBackground"
+import { heroContainer, heroItem } from "@/lib/animations"
 
-// ─── Glitch hook — random tearing on an interval ──────────────────────────────
-function useGlitch() {
-  const [active, setActive] = useState(false)
-  useEffect(() => {
-    let timeout
-    const schedule = () => {
-      timeout = setTimeout(() => {
-        setActive(true)
-        setTimeout(() => { setActive(false); schedule() }, 100 + Math.random() * 80)
-      }, 2200 + Math.random() * 2800)
-    }
-    schedule()
-    return () => clearTimeout(timeout)
-  }, [])
-  return active
-}
-
-// ─── Backwards clock SVG ──────────────────────────────────────────────────────
-function BackwardsClock() {
-  return (
-    <svg viewBox="0 0 44 44" className="w-14 h-14 opacity-60">
-      <circle cx="22" cy="22" r="20" fill="none" stroke="#7f1d1d" strokeWidth="1.5" />
-      {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => (
-        <line
-          key={deg}
-          x1="22" y1="4" x2="22" y2="6"
-          stroke="#7f1d1d" strokeWidth="1"
-          style={{ transformOrigin: "22px 22px", transform: `rotate(${deg}deg)` }}
-        />
-      ))}
-      {/* Hour hand — rotates backwards */}
-      <motion.line
-        x1="22" y1="22" x2="22" y2="10"
-        stroke="#ef4444" strokeWidth="2" strokeLinecap="round"
-        style={{ transformOrigin: "22px 22px" }}
-        animate={{ rotate: [0, -360] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-      />
-      {/* Minute hand — rotates backwards faster */}
-      <motion.line
-        x1="22" y1="22" x2="22" y2="7"
-        stroke="#ef444470" strokeWidth="1.5" strokeLinecap="round"
-        style={{ transformOrigin: "22px 22px" }}
-        animate={{ rotate: [0, -360] }}
-        transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-      />
-      <circle cx="22" cy="22" r="1.5" fill="#ef4444" />
-    </svg>
-  )
-}
-
-// ─── Right panel: data flow nodes ────────────────────────────────────────────
-const flowNodes = [
-  { id: "a", icon: "upload_file", label: "Input",      x: "62%", y: "22%" },
-  { id: "b", icon: "auto_mode",   label: "Automate",   x: "78%", y: "18%" },
-  { id: "c", icon: "psychology",  label: "AI Engine",  x: "88%", y: "40%" },
-  { id: "d", icon: "analytics",   label: "Analytics",  x: "72%", y: "55%" },
-  { id: "e", icon: "send",        label: "Deliver",    x: "88%", y: "65%" },
+// ─── Service nodes ────────────────────────────────────────────────────────────
+const SERVICES = [
+  { id: "web",         icon: "terminal",         label: "Website Dev",      desc: "High-performance websites and client portals.",          orbit: 0, phase: 0,              color: "#2563eb" },
+  { id: "systems",     icon: "settings_suggest", label: "Business Systems", desc: "Custom ERP, dashboards, and internal tools.",             orbit: 0, phase: Math.PI,       color: "#2563eb" },
+  { id: "automation",  icon: "auto_mode",        label: "Automation",       desc: "Workflows that run 24/7 without human input.",            orbit: 1, phase: Math.PI * 0.3, color: "#00d2fd" },
+  { id: "ai",          icon: "psychology",       label: "AI & Agents",      desc: "Intelligent assistants trained on your data.",            orbit: 1, phase: Math.PI * 1.3, color: "#00d2fd" },
+  { id: "data",        icon: "analytics",        label: "Data Dashboards",  desc: "Real-time KPI dashboards and business intelligence.",     orbit: 2, phase: Math.PI * 0.6, color: "#4edea3" },
+  { id: "integration", icon: "hub",              label: "Integration",      desc: "Connect your entire software stack into one ecosystem.",  orbit: 2, phase: Math.PI * 1.6, color: "#4edea3" },
 ]
 
-const nodeColors = {
-  a: "#2563eb", b: "#4edea3", c: "#00d2fd", d: "#2563eb", e: "#4edea3",
-}
-
-function FlowNode({ node, delay }) {
-  return (
-    <div className="absolute" style={{ left: node.x, top: node.y, transform: "translate(-50%,-50%)" }}>
-      {/* Pulse ring */}
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        style={{ border: `1.5px solid ${nodeColors[node.id]}` }}
-        animate={{ scale: [1, 1.9], opacity: [0.5, 0] }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay }}
-      />
-      {/* Circle */}
-      <motion.div
-        className="relative w-10 h-10 rounded-full flex items-center justify-center border"
-        style={{
-          background: nodeColors[node.id] + "18",
-          borderColor: nodeColors[node.id] + "60",
-        }}
-        animate={{
-          boxShadow: [
-            `0 0 6px ${nodeColors[node.id]}40`,
-            `0 0 18px ${nodeColors[node.id]}80`,
-            `0 0 6px ${nodeColors[node.id]}40`,
-          ],
-        }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay }}
-        initial={{ scale: 0, opacity: 0 }}
-        whileInView={{ scale: 1, opacity: 1 }}
-        viewport={{ once: true }}
-        whileInViewTransition={{ delay: delay + 0.3, duration: 0.5 }}
-      >
-        <motion.span
-          className="material-symbols-outlined text-base"
-          style={{ color: nodeColors[node.id] }}
-          animate={{ scale: [1, 1.15, 1] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay }}
-        >
-          {node.icon}
-        </motion.span>
-      </motion.div>
-      {/* Label */}
-      <p
-        className="absolute top-full mt-1 left-1/2 -translate-x-1/2 text-[10px] font-label font-bold whitespace-nowrap"
-        style={{ color: nodeColors[node.id] + "cc" }}
-      >
-        {node.label}
-      </p>
-    </div>
-  )
-}
-
-// ─── Right panel: system status HUD ─────────────────────────────────────────
-const statusItems = [
-  { label: "System online",      color: "#4edea3" },
-  { label: "3 workflows active", color: "#00d2fd" },
-  { label: "AI agents running",  color: "#2563eb" },
+// Orbit speeds and tilt ratios (ry/rx gives the "perspective" tilt feel)
+const ORBIT_DEFS = [
+  { speedMul: 0.38,  ry_rx: 0.41, color: [37,  99,  235] },
+  { speedMul: -0.24, ry_rx: 0.41, color: [0,   210, 253] },
+  { speedMul: 0.17,  ry_rx: 0.41, color: [78,  222, 163] },
 ]
+const ORBIT_RADII = [0.185, 0.275, 0.365] // rx as fraction of min(w,h)
 
-// ─── Main component ───────────────────────────────────────────────────────────
-const INIT_POS = 42 // initial divider at 42% from left
+function hexToRgb(hex) {
+  return [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ]
+}
 
+// ─── Canvas draw ──────────────────────────────────────────────────────────────
+function drawOrrery(ctx, w, h, t, hoveredOrbitIdx) {
+  ctx.clearRect(0, 0, w, h)
+  const cx = w * 0.52
+  const cy = h * 0.50
+  const S  = Math.min(w, h)
+
+  // Build orbit objects
+  const orbits = ORBIT_DEFS.map((def, i) => ({
+    rx:    S * ORBIT_RADII[i],
+    ry:    S * ORBIT_RADII[i] * def.ry_rx,
+    speed: def.speedMul,
+    color: def.color,
+  }))
+
+  // Calculate node positions
+  const nodePositions = SERVICES.map(svc => {
+    const o = orbits[svc.orbit]
+    const angle = svc.phase + t * o.speed
+    return { ...svc, x: cx + o.rx * Math.cos(angle), y: cy + o.ry * Math.sin(angle) }
+  })
+
+  // ── Orbit rings ──────────────────────────────────────────────────────────
+  orbits.forEach((o, i) => {
+    const [r, g, b] = o.color
+    const isActive  = hoveredOrbitIdx === i
+    const dashOff   = -t * Math.abs(o.speed) * 55 * Math.sign(o.speed)
+
+    // Ghost (always-visible faint) ring
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, o.rx, o.ry, 0, 0, Math.PI * 2)
+    ctx.strokeStyle = `rgba(${r},${g},${b},${isActive ? 0.22 : 0.09})`
+    ctx.lineWidth   = isActive ? 1.4 : 0.9
+    ctx.setLineDash([])
+    ctx.stroke()
+
+    // Animated dashed ring
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, o.rx, o.ry, 0, 0, Math.PI * 2)
+    ctx.strokeStyle  = `rgba(${r},${g},${b},${isActive ? 0.75 : 0.38})`
+    ctx.lineWidth    = isActive ? 1.1 : 0.7
+    ctx.setLineDash([7, 13])
+    ctx.lineDashOffset = dashOff
+    ctx.stroke()
+    ctx.setLineDash([])
+  })
+
+  // ── Orb outer glow (pulsing) ─────────────────────────────────────────────
+  const pulseR = S * 0.10 + Math.sin(t * 0.85) * S * 0.013
+  const glow   = ctx.createRadialGradient(cx, cy, 0, cx, cy, pulseR * 2.4)
+  glow.addColorStop(0,    "rgba(37,99,235,0.42)")
+  glow.addColorStop(0.45, "rgba(0,210,253,0.18)")
+  glow.addColorStop(1,    "transparent")
+  ctx.beginPath()
+  ctx.arc(cx, cy, pulseR * 2.4, 0, Math.PI * 2)
+  ctx.fillStyle = glow
+  ctx.fill()
+
+  // ── Orb core (radial-gradient sphere) ────────────────────────────────────
+  const orbR = S * 0.058
+  const core = ctx.createRadialGradient(
+    cx - orbR * 0.30, cy - orbR * 0.30, orbR * 0.04,
+    cx, cy, orbR,
+  )
+  core.addColorStop(0,    "#b8ecff")
+  core.addColorStop(0.22, "#00d2fd")
+  core.addColorStop(0.58, "#2563eb")
+  core.addColorStop(1,    "#0a1540")
+  ctx.beginPath()
+  ctx.arc(cx, cy, orbR, 0, Math.PI * 2)
+  ctx.fillStyle = core
+  ctx.fill()
+
+  // Specular highlight
+  const spec = ctx.createRadialGradient(
+    cx - orbR * 0.42, cy - orbR * 0.42, 0,
+    cx - orbR * 0.20, cy - orbR * 0.20, orbR * 0.55,
+  )
+  spec.addColorStop(0,   "rgba(255,255,255,0.28)")
+  spec.addColorStop(1,   "transparent")
+  ctx.beginPath()
+  ctx.arc(cx, cy, orbR, 0, Math.PI * 2)
+  ctx.fillStyle = spec
+  ctx.fill()
+
+  // ── Rotating inner arcs ──────────────────────────────────────────────────
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.rotate(t * 0.52)
+  ctx.beginPath()
+  ctx.arc(0, 0, orbR + S * 0.013, 0.25, Math.PI * 1.72)
+  ctx.strokeStyle = "rgba(255,255,255,0.22)"
+  ctx.lineWidth   = 1.4
+  ctx.stroke()
+  ctx.restore()
+
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.rotate(-t * 0.36)
+  ctx.beginPath()
+  ctx.arc(0, 0, orbR + S * 0.024, Math.PI * 0.55, Math.PI * 1.25)
+  ctx.strokeStyle = "rgba(0,210,253,0.32)"
+  ctx.lineWidth   = 1.0
+  ctx.stroke()
+  ctx.restore()
+
+  // ── Node glow halos (soft, drawn behind DOM icons) ───────────────────────
+  nodePositions.forEach(node => {
+    const [r, g, b] = hexToRgb(node.color)
+    const haloR = S * 0.038
+    const halo  = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, haloR)
+    halo.addColorStop(0,   `rgba(${r},${g},${b},0.55)`)
+    halo.addColorStop(1,   "transparent")
+    ctx.beginPath()
+    ctx.arc(node.x, node.y, haloR, 0, Math.PI * 2)
+    ctx.fillStyle = halo
+    ctx.fill()
+  })
+
+  return { cx, cy, orbits, nodePositions }
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function HeroSection() {
-  const glitching = useGlitch()
+  const navigate = useNavigate()
   const sectionRef  = useRef(null)
-  const leftRef     = useRef(null)  // clipping container
-  const dividerRef  = useRef(null)  // divider bar
-  const lHeadRef    = useRef(null)  // left-styled headline clone
-  const rHeadRef    = useRef(null)  // right-styled headline clone
-  const dragging    = useRef(false)
+  const orreryRef   = useRef(null) // motion.div wrapping the orbital canvas
+  const canvasRef   = useRef(null)
+  const ctxRef      = useRef(null)
+  const canvasDim   = useRef({ w: 0, h: 0 })
+  const animRef     = useRef(null)
+  const nodeEls     = useRef([])   // DOM refs to node divs
+  const tooltipEl   = useRef(null) // DOM ref for tooltip position
+  const hoveredSvcRef = useRef(null)
 
-  // Direct DOM update — no React re-render on every mouse move
-  const updatePos = (pct) => {
-    pct = Math.max(6, Math.min(88, pct))
-    if (leftRef.current)    leftRef.current.style.width          = `${pct}%`
-    if (dividerRef.current) dividerRef.current.style.left        = `${pct}%`
-    if (lHeadRef.current)   lHeadRef.current.style.clipPath      = `inset(0 ${100 - pct}% 0 0)`
-    if (rHeadRef.current)   rHeadRef.current.style.clipPath      = `inset(0 0 0 ${pct}%)`
-  }
+  const [tooltip, setTooltip] = useState(null) // { label, desc, color } | null
 
-  const onPointerDown = (e) => {
-    dragging.current = true
-    e.currentTarget.setPointerCapture(e.pointerId)
-  }
-  const onPointerMove = (e) => {
-    if (!dragging.current || !sectionRef.current) return
+  // ── Mouse parallax ──────────────────────────────────────────────────────
+  const rawMX = useMotionValue(0)
+  const rawMY = useMotionValue(0)
+  const springCfg = { stiffness: 38, damping: 18, mass: 1 }
+  const tiltY = useSpring(useTransform(rawMX, [0, 1], [-4.5, 4.5]), springCfg)
+  const tiltX = useSpring(useTransform(rawMY, [0, 1], [3.5, -3.5]),  springCfg)
+
+  const handleMouseMove = useCallback((e) => {
+    if (!sectionRef.current) return
     const rect = sectionRef.current.getBoundingClientRect()
-    updatePos(((e.clientX - rect.left) / rect.width) * 100)
+    rawMX.set((e.clientX - rect.left) / rect.width)
+    rawMY.set((e.clientY - rect.top)  / rect.height)
+  }, [rawMX, rawMY])
+
+  // ── Scroll fade ─────────────────────────────────────────────────────────
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  })
+  const orbScale   = useTransform(scrollYProgress, [0, 0.45], [1,   0.6])
+  const orbOpacity = useTransform(scrollYProgress, [0, 0.35], [1,   0])
+
+  // ── Canvas setup + rAF loop ─────────────────────────────────────────────
+  useEffect(() => {
+    const setupCanvas = () => {
+      if (!canvasRef.current || !orreryRef.current) return
+      const dpr = window.devicePixelRatio || 1
+      const w   = orreryRef.current.offsetWidth
+      const h   = orreryRef.current.offsetHeight
+      canvasRef.current.width  = w * dpr
+      canvasRef.current.height = h * dpr
+      ctxRef.current = canvasRef.current.getContext("2d")
+      ctxRef.current.setTransform(dpr, 0, 0, dpr, 0, 0)
+      canvasDim.current = { w, h }
+    }
+
+    setupCanvas()
+    window.addEventListener("resize", setupCanvas)
+
+    const loop = (timestamp) => {
+      const t = timestamp / 1000
+      if (ctxRef.current && canvasDim.current.w > 0) {
+        const { w, h } = canvasDim.current
+        const hoveredOrbitIdx = SERVICES.find(s => s.id === hoveredSvcRef.current)?.orbit ?? -1
+        const { cx, cy, orbits, nodePositions } = drawOrrery(
+          ctxRef.current, w, h, t, hoveredOrbitIdx,
+        )
+
+        // Update node DOM positions (no React re-render)
+        nodePositions.forEach((node, i) => {
+          const el = nodeEls.current[i]
+          if (el) {
+            el.style.left = `${node.x}px`
+            el.style.top  = `${node.y}px`
+          }
+        })
+
+        // Update tooltip DOM position
+        if (tooltipEl.current && hoveredSvcRef.current) {
+          const hovIdx = SERVICES.findIndex(s => s.id === hoveredSvcRef.current)
+          if (hovIdx !== -1) {
+            const np = nodePositions[hovIdx]
+            tooltipEl.current.style.left      = `${np.x - 88}px`   // half tooltip width
+            tooltipEl.current.style.top       = `${np.y - 106}px`  // above node
+            tooltipEl.current.style.transform = "none"
+          }
+        }
+      }
+      animRef.current = requestAnimationFrame(loop)
+    }
+
+    animRef.current = requestAnimationFrame(loop)
+    return () => {
+      cancelAnimationFrame(animRef.current)
+      window.removeEventListener("resize", setupCanvas)
+    }
+  }, [])
+
+  // ── Node hover handlers ─────────────────────────────────────────────────
+  const handleNodeEnter = (svc) => {
+    hoveredSvcRef.current = svc.id
+    setTooltip(svc)
   }
-  const onPointerUp = () => { dragging.current = false }
+  const handleNodeLeave = () => {
+    hoveredSvcRef.current = null
+    setTooltip(null)
+  }
 
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-screen overflow-hidden select-none"
-      style={{ cursor: "default" }}
+      className="relative min-h-screen overflow-hidden bg-[#0d1117]"
+      onMouseMove={handleMouseMove}
     >
-      {/* ══════════════════════════════════════════════════════════
-          RIGHT PANEL — PCE World (base layer, full width)
-      ══════════════════════════════════════════════════════════ */}
-      <div className="absolute inset-0 bg-[#0d1117]">
-        <ParticleBackground />
-        {/* Kinetic gradient */}
-        <motion.div
-          className="absolute inset-0 kinetic-gradient pointer-events-none"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          transition={{ duration: 1.8 }}
-        />
-        {/* Subtle grid */}
-        <div className="absolute inset-0 grid-bg opacity-[0.06] pointer-events-none" />
+      {/* Particle field — always present */}
+      <ParticleBackground />
+      <div className="absolute inset-0 kinetic-gradient opacity-60 pointer-events-none" />
 
-        {/* Data flow nodes — hidden on mobile */}
-        <div className="absolute inset-0 pointer-events-none hidden lg:block">
-          {flowNodes.map((node, i) => (
-            <FlowNode key={node.id} node={node} delay={i * 0.25} />
-          ))}
-        </div>
-
-        {/* System status HUD */}
+      {/* ── MOBILE layout (< lg) ───────────────────────────────────────── */}
+      <div className="lg:hidden relative z-10 min-h-screen flex items-center justify-center px-8 pt-24">
         <motion.div
-          className="absolute bottom-10 right-8 space-y-2 pointer-events-none hidden lg:block"
-          initial={{ opacity: 0, x: 16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 1.4, duration: 0.6 }}
+          className="text-center max-w-md"
+          variants={heroContainer}
+          initial="hidden"
+          animate="visible"
         >
-          {statusItems.map(({ label, color }, i) => (
-            <motion.div
-              key={label}
-              className="flex items-center gap-2 text-xs font-label"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.8 }}
-            >
-              <motion.span
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ background: color }}
-                animate={{ scale: [1, 1.4, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.8 }}
-              />
-              <span style={{ color: color + "cc" }}>{label}</span>
-            </motion.div>
-          ))}
+          <motion.div variants={heroItem} className="flex items-center justify-center gap-3 mb-6">
+            <span className="data-pulse-dot" />
+            <span className="text-[var(--pce-cyan)] font-label tracking-widest text-xs uppercase">
+              Next-Gen Systems Engineering
+            </span>
+          </motion.div>
+          <motion.h1
+            variants={heroItem}
+            className="text-5xl font-headline font-bold tracking-tighter leading-[0.92] text-foreground mb-5"
+          >
+            Intelligent Systems for{" "}
+            <span className="text-primary">Modern Business.</span>
+          </motion.h1>
+          <motion.p variants={heroItem} className="text-sm text-muted-foreground mb-8 leading-relaxed">
+            AI, automation, and custom software that transforms how you work.
+          </motion.p>
+          <motion.div variants={heroItem} className="flex flex-col gap-3 items-center">
+            <Button asChild size="lg" className="w-full max-w-xs">
+              <Link to="/contact">Start a Project</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="w-full max-w-xs">
+              <Link to="/contact">Book Consultation</Link>
+            </Button>
+          </motion.div>
         </motion.div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════
-          LEFT PANEL — Problem World (clipped overlay)
-          Hidden on mobile — desktop only
-      ══════════════════════════════════════════════════════════ */}
-      <div
-        ref={leftRef}
-        className="absolute inset-y-0 left-0 overflow-hidden hidden lg:block"
-        style={{ width: `${INIT_POS}%` }}
-      >
-        {/* Panel bg — fixed screen-width so content doesn't stretch */}
+      {/* ── DESKTOP layout (>= lg) ─────────────────────────────────────── */}
+      <div className="hidden lg:flex relative z-10 min-h-screen items-stretch">
+
+        {/* Left text column */}
         <motion.div
-          className="absolute inset-0 pointer-events-none"
-          style={{ width: "100vw", background: "#0b0604" }}
-          animate={glitching ? { x: [0, -4, 3, -2, 0] } : { x: 0 }}
-          transition={{ duration: 0.1, ease: "linear" }}
+          className="w-[33%] shrink-0 flex flex-col justify-center pl-14 pr-8 pt-20"
+          variants={heroContainer}
+          initial="hidden"
+          animate="visible"
         >
-          {/* Red vignette */}
-          <div
-            className="absolute inset-0 pointer-events-none"
+          <motion.div variants={heroItem} className="flex items-center gap-3 mb-7">
+            <span className="data-pulse-dot" />
+            <span className="text-[var(--pce-cyan)] font-label tracking-widest text-xs uppercase">
+              Next-Gen Systems Engineering
+            </span>
+          </motion.div>
+
+          <motion.h1
+            variants={heroItem}
+            className="text-5xl xl:text-6xl font-headline font-bold tracking-tighter leading-[0.90] text-foreground mb-6"
+          >
+            Intelligent<br />Systems for<br />
+            <span className="text-primary">Modern Business.</span>
+          </motion.h1>
+
+          <motion.p
+            variants={heroItem}
+            className="text-sm text-muted-foreground leading-relaxed mb-9 max-w-xs"
+          >
+            AI, automation, and custom software that transforms how you work — 24/7.
+          </motion.p>
+
+          <motion.div variants={heroItem} className="flex flex-col gap-3">
+            <Button asChild size="lg">
+              <Link to="/contact">Start a Project</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link to="/contact">Book Consultation</Link>
+            </Button>
+          </motion.div>
+
+          <motion.p
+            variants={heroItem}
+            className="mt-10 text-xs text-muted-foreground/60 flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-sm text-[var(--pce-cyan)]/60">
+              touch_app
+            </span>
+            Hover a node · Click to explore services
+          </motion.p>
+        </motion.div>
+
+        {/* Right orbital canvas */}
+        <div className="flex-1 relative" style={{ perspective: "1200px" }}>
+          <motion.div
+            ref={orreryRef}
+            className="absolute inset-0"
             style={{
-              background: "radial-gradient(ellipse at 30% 50%, rgba(127,29,29,0.12) 0%, transparent 70%)",
+              rotateX:  tiltX,
+              rotateY:  tiltY,
+              scale:    orbScale,
+              opacity:  orbOpacity,
             }}
-          />
+          >
+            {/* Canvas — draws orb, rings, node halos */}
+            <canvas
+              ref={canvasRef}
+              className="absolute inset-0 pointer-events-none"
+              style={{ width: "100%", height: "100%" }}
+            />
 
-          {/* ── Document stack ── */}
-          <div className="absolute left-[10%] top-[25%]">
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                className="absolute w-28 h-36 rounded border border-red-950/60 bg-[#120a07]"
-                style={{ left: i * 10, top: -i * 10, zIndex: 3 - i }}
-                animate={{ rotate: [(i - 1) * 3, (i - 1) * 3 + 1.5, (i - 1) * 3] }}
-                transition={{ duration: 3 + i * 0.8, repeat: Infinity, ease: "easeInOut" }}
+            {/* Service node DOM elements — positioned via rAF, zero re-renders */}
+            {SERVICES.map((svc, i) => (
+              <div
+                key={svc.id}
+                ref={(el) => { nodeEls.current[i] = el }}
+                className="absolute pointer-events-auto"
+                style={{ left: "52%", top: "50%" }}
+                onMouseEnter={() => handleNodeEnter(svc)}
+                onMouseLeave={handleNodeLeave}
+                onClick={() => navigate("/services")}
               >
-                <div className="p-3 pt-4 space-y-1.5">
-                  {[80, 100, 60, 90, 70, 55].map((w, j) => (
-                    <div
-                      key={j}
-                      className={`h-1.5 rounded ${j === 1 ? "bg-red-900/50" : "bg-red-950/40"}`}
-                      style={{ width: `${w}%` }}
-                    />
-                  ))}
-                  {/* Error badge */}
-                  {i === 0 && (
-                    <div className="mt-2 inline-flex items-center gap-1 text-[9px] font-bold text-red-500 bg-red-950/60 px-1.5 py-0.5 rounded">
-                      <span className="material-symbols-outlined text-[9px]">error</span>
-                      #REF!
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* ── Backwards clock ── */}
-          <div className="absolute right-[22%] top-[30%]">
-            <BackwardsClock />
-          </div>
-
-          {/* ── Loading bar (never completes) ── */}
-          <div className="absolute left-[8%] bottom-[35%] space-y-1.5">
-            <p className="text-[9px] font-label text-red-900/70 uppercase tracking-widest">Processing…</p>
-            <div className="w-36 h-1.5 bg-red-950/40 rounded-full overflow-hidden border border-red-950/30">
-              <motion.div
-                className="h-full bg-gradient-to-r from-red-900/70 to-red-700/50 rounded-full"
-                animate={{ width: ["0%", "86%", "86%", "0%"] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", times: [0, 0.6, 0.9, 1] }}
-              />
-            </div>
-            <p className="text-[9px] text-red-900/50 font-label">Estimated: 4 hrs</p>
-          </div>
-
-          {/* ── Spreadsheet error grid ── */}
-          <div className="absolute right-[8%] bottom-[28%]">
-            <div className="grid grid-cols-3 gap-px text-[8px] font-label opacity-50">
-              {["A1", "ERR", "B2", "#REF!", "C3", "NULL", "D4", "ERR", "E5"].map((cell, i) => (
                 <motion.div
-                  key={i}
-                  className={`px-1.5 py-1 border ${cell.startsWith("#") || cell === "ERR" || cell === "NULL"
-                    ? "border-red-900/50 text-red-500 bg-red-950/30"
-                    : "border-red-950/20 text-red-900/50"
-                  }`}
-                  animate={cell === "ERR" ? { opacity: [1, 0.3, 1] } : {}}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.3 }}
+                  className="w-11 h-11 rounded-full border-2 flex items-center justify-center cursor-pointer"
+                  style={{
+                    background:  svc.color + "1a",
+                    borderColor: svc.color + "70",
+                    translateX:  "-50%",
+                    translateY:  "-50%",
+                  }}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{
+                    delay:    0.8 + i * 0.13,
+                    duration: 0.55,
+                    ease:     [0.22, 1, 0.36, 1],
+                  }}
+                  whileHover={{
+                    scale:       1.55,
+                    borderColor: svc.color,
+                    background:  svc.color + "33",
+                    boxShadow:   `0 0 22px ${svc.color}80`,
+                  }}
+                  whileTap={{ scale: 1.2 }}
                 >
-                  {cell}
+                  <span
+                    className="material-symbols-outlined text-base pointer-events-none"
+                    style={{ color: svc.color }}
+                  >
+                    {svc.icon}
+                  </span>
                 </motion.div>
-              ))}
-            </div>
-          </div>
+              </div>
+            ))}
 
-          {/* ── BEFORE label ── */}
-          <div className="absolute top-[8%] left-[8%]">
-            <motion.span
-              className="text-[10px] font-bold font-label uppercase tracking-widest text-red-900/60 border border-red-950/40 px-2 py-1 rounded"
-              animate={{ opacity: [0.4, 0.8, 0.4] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
-              ✕ Manual Operations
-            </motion.span>
-          </div>
-
-          {/* Glitch slice overlay */}
-          <AnimatePresence>
-            {glitching && (
-              <motion.div
-                className="absolute pointer-events-none"
-                style={{
-                  width: "100vw",
-                  height: 2 + Math.random() * 4,
-                  top: `${20 + Math.random() * 60}%`,
-                  background: "rgba(239,68,68,0.15)",
-                  mixBlendMode: "screen",
-                }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              />
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════
-          DIVIDER — drag handle (desktop only)
-      ══════════════════════════════════════════════════════════ */}
-      <div
-        ref={dividerRef}
-        className="absolute top-0 bottom-0 z-30 hidden lg:flex items-center justify-center"
-        style={{ left: `${INIT_POS}%`, transform: "translateX(-50%)", cursor: "ew-resize", width: 40 }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-      >
-        {/* Glowing line */}
-        <motion.div
-          className="absolute top-0 bottom-0 w-[1.5px]"
-          style={{ left: "50%", transform: "translateX(-50%)" }}
-          animate={{
-            boxShadow: [
-              "0 0 6px rgba(0,210,253,0.6), 0 0 20px rgba(0,210,253,0.2)",
-              "0 0 16px rgba(0,210,253,1), 0 0 40px rgba(0,210,253,0.4)",
-              "0 0 6px rgba(0,210,253,0.6), 0 0 20px rgba(0,210,253,0.2)",
-            ],
-            background: ["rgba(0,210,253,0.7)", "rgba(0,210,253,1)", "rgba(0,210,253,0.7)"],
-          }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        {/* Drag handle pill */}
-        <motion.div
-          className="relative z-10 w-8 h-8 rounded-full bg-[#0d1117] border border-[var(--pce-cyan)]/50 flex items-center justify-center shadow-lg"
-          whileHover={{ scale: 1.2, borderColor: "rgba(0,210,253,0.9)" }}
-          animate={{
-            boxShadow: ["0 0 0px rgba(0,210,253,0)", "0 0 14px rgba(0,210,253,0.5)", "0 0 0px rgba(0,210,253,0)"],
-          }}
-          transition={{ duration: 2.5, repeat: Infinity }}
-        >
-          <span className="material-symbols-outlined text-[var(--pce-cyan)] text-sm">swap_horiz</span>
-        </motion.div>
-
-        {/* Drag hint */}
-        <motion.p
-          className="absolute bottom-12 text-[9px] font-label text-[var(--pce-cyan)]/50 whitespace-nowrap -translate-x-1/2 left-1/2"
-          animate={{ opacity: [0.3, 0.7, 0.3] }}
-          transition={{ duration: 2.5, repeat: Infinity }}
-        >
-          drag
-        </motion.p>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════
-          HEADLINE — dual clip-path rendering (desktop only)
-          Same text rendered twice, each clipped to its world
-      ══════════════════════════════════════════════════════════ */}
-      <div className="absolute inset-0 z-20 pointer-events-none hidden lg:block">
-        {/* Left-world headline — muted red/glitchy */}
-        <div
-          ref={lHeadRef}
-          className="absolute inset-0 flex items-center"
-          style={{ clipPath: `inset(0 ${100 - INIT_POS}% 0 0)` }}
-        >
-          <div className="pl-12 pr-8 max-w-2xl" style={{ paddingTop: "4rem" }}>
-            <p className="text-[10px] font-label uppercase tracking-widest text-red-900/60 mb-5">
-              — Before PCE
-            </p>
-            <h1 className="text-6xl xl:text-7xl font-headline font-bold tracking-tighter leading-[0.92]"
-              style={{ color: "#5a2020", textShadow: "1px 0 0 #ef444420, -1px 0 0 #ef444420" }}
-            >
-              From Manual —<br />
-              <span style={{ color: "#7f2020" }}>to Intelligent.</span>
-            </h1>
-          </div>
-        </div>
-
-        {/* Right-world headline — clean and vivid */}
-        <div
-          ref={rHeadRef}
-          className="absolute inset-0 flex items-center"
-          style={{ clipPath: `inset(0 0 0 ${INIT_POS}%)` }}
-        >
-          <div className="pl-12 pr-8 max-w-2xl" style={{ paddingTop: "4rem" }}>
-            <p className="text-[10px] font-label uppercase tracking-widest text-[var(--pce-cyan)]/70 mb-5">
-              — With PCE Technologies
-            </p>
-            <h1 className="text-6xl xl:text-7xl font-headline font-bold tracking-tighter leading-[0.92] text-foreground">
-              From Manual —<br />
-              <span className="text-primary">to Intelligent.</span>
-            </h1>
-          </div>
+            {/* Tooltip — content via React state, position via DOM ref */}
+            <AnimatePresence>
+              {tooltip && (
+                <motion.div
+                  ref={tooltipEl}
+                  className="absolute z-20 pointer-events-none w-44 bg-pce-surface-container border border-pce-outline-variant/30 rounded-xl p-3.5 shadow-2xl"
+                  style={{ left: "52%", top: "30%" }}
+                  initial={{ opacity: 0, y: 10, scale: 0.94 }}
+                  animate={{ opacity: 1, y: 0,  scale: 1 }}
+                  exit={{    opacity: 0, y: 6,  scale: 0.96 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <div
+                    className="flex items-center gap-2 mb-1.5"
+                  >
+                    <span
+                      className="material-symbols-outlined text-sm"
+                      style={{ color: tooltip.color }}
+                    >
+                      {tooltip.icon}
+                    </span>
+                    <p className="text-xs font-bold text-foreground">{tooltip.label}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-snug">{tooltip.desc}</p>
+                  {/* Arrow */}
+                  <div
+                    className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-pce-surface-container border-r border-b border-pce-outline-variant/30"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
       </div>
-
-      {/* ══════════════════════════════════════════════════════════
-          MAIN CONTENT — eyebrow, subtext, CTAs
-          Sits in the right panel area on desktop, centered on mobile
-      ══════════════════════════════════════════════════════════ */}
-      <div className="relative z-20 min-h-screen flex items-center">
-        <div className="w-full px-8">
-
-          {/* Mobile headline (shown only on mobile — replaces split version) */}
-          <motion.div
-            className="lg:hidden mb-8"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <span className="data-pulse-dot" />
-              <span className="text-[var(--pce-cyan)] font-label tracking-widest text-xs uppercase">
-                Next-Gen Systems Engineering
-              </span>
-            </div>
-            <h1 className="text-5xl font-headline font-bold tracking-tighter leading-[0.92] text-foreground mb-6">
-              From Manual —<br />
-              <span className="text-primary">to Intelligent.</span>
-            </h1>
-          </motion.div>
-
-          {/* Desktop: subtext + CTAs pushed to right of divider */}
-          <motion.div
-            className="hidden lg:block"
-            style={{ paddingLeft: `${INIT_POS + 4}%`, paddingTop: "18rem" }}
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <p className="text-base text-muted-foreground max-w-sm leading-relaxed mb-8">
-              PCE Technologies helps businesses transition from manual operations to
-              intelligent digital systems through AI, automation, and custom software.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Button asChild size="lg">
-                <Link to="/contact">Start a Project</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link to="/contact">Book Consultation</Link>
-              </Button>
-            </div>
-          </motion.div>
-
-          {/* Mobile: subtext + CTAs */}
-          <motion.div
-            className="lg:hidden"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-          >
-            <p className="text-base text-muted-foreground leading-relaxed mb-8 max-w-md">
-              PCE Technologies helps businesses transition from manual operations to
-              intelligent digital systems through AI, automation, and custom software.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Button asChild size="lg">
-                <Link to="/contact">Start a Project</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link to="/contact">Book Consultation</Link>
-              </Button>
-            </div>
-          </motion.div>
-
-        </div>
-      </div>
-
-      {/* PCE AFTER label — top right (desktop) */}
-      <motion.div
-        className="absolute top-[8%] right-8 z-20 hidden lg:block"
-        initial={{ opacity: 0, x: 12 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 1, duration: 0.5 }}
-      >
-        <span className="text-[10px] font-bold font-label uppercase tracking-widest text-[var(--pce-cyan)]/60 border border-[var(--pce-cyan)]/20 px-2 py-1 rounded">
-          ✓ Intelligent Systems
-        </span>
-      </motion.div>
     </section>
   )
 }
