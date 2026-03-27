@@ -321,15 +321,7 @@ export default function HeroSection() {
           </motion.p>
 
           {/* Buttons */}
-          <motion.div className="flex flex-wrap" style={{ gap: 20 }} {...fu(0.6)}>
-            <MotionLink
-              to="/contact"
-              style={{ display: "inline-block", background: "#2563eb", color: "#eeefff", ...manrope, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", padding: "14px 36px", borderRadius: 8, textDecoration: "none" }}
-              whileHover={{ y: -2, boxShadow: "0 0 16px rgba(37,99,235,0.4)" }}
-              transition={{ duration: 0.2 }}
-            >
-              Start a Project
-            </MotionLink>
+          <motion.div {...fu(0.6)}>
             <MotionLink
               to="/contact"
               style={{ display: "inline-block", background: "transparent", border: "1px solid #434655", color: "#e2e2e9", ...manrope, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", padding: "14px 36px", borderRadius: 8, textDecoration: "none" }}
