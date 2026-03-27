@@ -165,7 +165,7 @@ export default function ServiceNodes() {
         </ScrollReveal>
 
         {/* Node canvas */}
-        <div className="relative w-full h-[480px] md:h-[520px]">
+        <div className="relative w-full h-[480px] md:h-[520px] overflow-hidden">
           {/* SVG connection lines */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
             {connections.map(([a, b], i) => {
