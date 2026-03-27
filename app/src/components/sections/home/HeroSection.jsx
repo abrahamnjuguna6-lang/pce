@@ -34,7 +34,7 @@ function hexToRgb(hex) {
 // ─── Canvas draw ──────────────────────────────────────────────────────────────
 function drawOrrery(ctx, w, h, t, hoveredOrbitIdx) {
   ctx.clearRect(0, 0, w, h)
-  const cx = w * 0.52
+  const cx = w * 0.46
   const cy = h * 0.50
   const S  = Math.min(w, h)
 
@@ -262,9 +262,10 @@ export default function HeroSection() {
       className="relative min-h-screen overflow-hidden bg-[#0d1117]"
       onMouseMove={handleMouseMove}
     >
-      {/* Particle field — always present */}
-      <ParticleBackground />
+      {/* Kinetic gradient beneath particles so dots are always visible */}
       <div className="absolute inset-0 kinetic-gradient opacity-60 pointer-events-none" />
+      {/* Particle field — z-[1] so it sits above gradient, below content */}
+      <ParticleBackground className="z-[1]" />
 
       {/* ── MOBILE layout (< lg) ───────────────────────────────────────── */}
       <div className="lg:hidden relative z-10 min-h-screen flex items-center justify-center px-8 pt-24">
@@ -282,7 +283,7 @@ export default function HeroSection() {
           </motion.div>
           <motion.h1
             variants={heroItem}
-            className="text-5xl font-headline font-bold tracking-tighter leading-[0.92] text-foreground mb-5"
+            className="text-4xl sm:text-5xl font-headline font-bold tracking-tighter leading-[0.92] text-foreground mb-5"
           >
             Intelligent Systems for{" "}
             <span className="text-primary">Modern Business.</span>
@@ -306,12 +307,12 @@ export default function HeroSection() {
 
         {/* Left text column */}
         <motion.div
-          className="w-[33%] shrink-0 flex flex-col justify-center pl-14 pr-8 pt-20"
+          className="w-[38%] shrink-0 flex flex-col justify-center pl-8 lg:pl-10 xl:pl-14 pr-6 pt-20"
           variants={heroContainer}
           initial="hidden"
           animate="visible"
         >
-          <motion.div variants={heroItem} className="flex items-center gap-3 mb-7">
+          <motion.div variants={heroItem} className="flex items-center gap-3 mb-6">
             <span className="data-pulse-dot" />
             <span className="text-[var(--pce-cyan)] font-label tracking-widest text-xs uppercase">
               Next-Gen Systems Engineering
@@ -320,7 +321,7 @@ export default function HeroSection() {
 
           <motion.h1
             variants={heroItem}
-            className="text-5xl xl:text-6xl font-headline font-bold tracking-tighter leading-[0.90] text-foreground mb-6"
+            className="text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-headline font-bold tracking-tighter leading-[0.90] text-foreground mb-5"
           >
             Intelligent<br />Systems for<br />
             <span className="text-primary">Modern Business.</span>
@@ -328,12 +329,12 @@ export default function HeroSection() {
 
           <motion.p
             variants={heroItem}
-            className="text-sm text-muted-foreground leading-relaxed mb-9 max-w-xs"
+            className="text-sm lg:text-sm xl:text-base text-muted-foreground leading-relaxed mb-8 max-w-xs xl:max-w-sm"
           >
             AI, automation, and custom software that transforms how you work — 24/7.
           </motion.p>
 
-          <motion.div variants={heroItem} className="flex flex-col gap-3">
+          <motion.div variants={heroItem} className="flex flex-col gap-3 max-w-xs xl:max-w-sm">
             <Button asChild size="lg">
               <Link to="/contact">Start a Project</Link>
             </Button>
@@ -344,7 +345,7 @@ export default function HeroSection() {
 
           <motion.p
             variants={heroItem}
-            className="mt-10 text-xs text-muted-foreground/60 flex items-center gap-2"
+            className="mt-8 text-xs text-muted-foreground/60 flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-sm text-[var(--pce-cyan)]/60">
               touch_app
@@ -378,7 +379,7 @@ export default function HeroSection() {
                 key={svc.id}
                 ref={(el) => { nodeEls.current[i] = el }}
                 className="absolute pointer-events-auto"
-                style={{ left: "52%", top: "50%" }}
+                style={{ left: "46%", top: "50%" }}
                 onMouseEnter={() => handleNodeEnter(svc)}
                 onMouseLeave={handleNodeLeave}
                 onClick={() => navigate("/services")}
@@ -422,7 +423,7 @@ export default function HeroSection() {
                 <motion.div
                   ref={tooltipEl}
                   className="absolute z-20 pointer-events-none w-44 bg-pce-surface-container border border-pce-outline-variant/30 rounded-xl p-3.5 shadow-2xl"
-                  style={{ left: "52%", top: "30%" }}
+                  style={{ left: "46%", top: "30%" }}
                   initial={{ opacity: 0, y: 10, scale: 0.94 }}
                   animate={{ opacity: 1, y: 0,  scale: 1 }}
                   exit={{    opacity: 0, y: 6,  scale: 0.96 }}
